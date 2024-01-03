@@ -1,8 +1,8 @@
-from fastapi import FastAPI
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 #crear una api para usuarios
-app = FastAPI()
+router = APIRouter()
 
 class User(BaseModel):
     id: int
@@ -17,7 +17,7 @@ users_list = [User(id= 1, name='Brais',surname='moure',url='moure.com',age=12),
 
 
 #por url
-@app.get("/user/{id}")
+@router.get("/user/{id}")
 async def user(id: int):
     users = filter(lambda user: user.id == id, users_list)
     try:
@@ -26,11 +26,11 @@ async def user(id: int):
         return "{'error': 'no se encontró el usuario'}"
 
 #por query
-@app.get("/user/")
+@router.get("/user/")
 async def user(id: int):
     return search_user(id)
 
-@app.get("/users/")
+@router.get("/users/", status_code=201)
 async def user():
     return users_list
 
@@ -43,10 +43,12 @@ def search_user(id: int):
 
 
 #si queremos agragar usuarios
-@app.post("/user/")
+@router.post("/user/", status_code=201)
 async def user(user: User):
     if type(search_user(user.id)) == User:
-        return {'error': 'el usuario ya existe'}
+        #el raise propaga la excepcion, no lo la lanza y la retorna
+        raise HTTPException(status_code=204,detail='el usuario ya existe')
+        #return {'error': 'el usuario ya existe'}
 
     else:
         users_list.append(user)
@@ -55,7 +57,7 @@ async def user(user: User):
 
 
 #actualizar el usuario
-@app.put("/user")
+@router.put("/user")
 async def user(user : User):
     found = False
     for index, saved_user in enumerate(users_list):
@@ -67,7 +69,7 @@ async def user(user : User):
     if not found:
         return "{'error': 'no se actualizó el usuario'}"
 
-@app.delete("/user/{id}")
+@router.delete("/user/{id}")
 async def user(id: int):
     found = False
     for index, saved_user in enumerate(users_list):
@@ -75,5 +77,6 @@ async def user(id: int):
             del users_list[index]
             found = True
             return "{'message': 'se elimino el usuario'}"
-            if not found:
-                return "{'error': 'no se elimino'}"
+    if not found:
+        return "{'error': 'no se elimino'}"
+    
